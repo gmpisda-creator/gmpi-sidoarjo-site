@@ -1,0 +1,13 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+const sql=fs.readFileSync('supabase/migrations/202610310040_internal_rpc_execute.sql','utf8');
+const signatures=[...sql.matchAll(/'public\.([^']+)'/g)].map(m=>m[1]);
+assert.equal(signatures.length,11);
+assert.equal(new Set(signatures).size,11);
+assert(signatures.every(s=>!s.startsWith('submit_')&&!s.startsWith('owner_')&&!s.startsWith('verify_member')&&!s.startsWith('verify_surat')));
+assert(sql.includes('from PUBLIC, anon'));
+assert(sql.includes('to authenticated, service_role'));
+assert(sql.includes("has_function_privilege('anon'"));
+assert(sql.includes('signature::regprocedure'));
+assert(!/\b(delete from|update public|drop table|alter table)\b/i.test(sql));
+console.log('PASS: static allowlist of 11 reviewed RPCs; transaction guard; PUBLIC and anon revocation; authorized roles preserved. Live execution not tested.');
