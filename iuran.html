@@ -228,8 +228,8 @@
       <section class="dues-card is-dark" id="cek" aria-labelledby="dues-check-title" style="grid-column:1/-1">
         <div class="dues-card-kicker">LANGKAH 3 — CEK STATUS</div>
         <h2 id="dues-check-title" style="font:900 19px Arial,Helvetica,sans-serif;letter-spacing:.2px;margin:9px 0 4px;color:#fffdf7">Sudah tercatat?</h2>
-        <p class="dues-help">Masukkan nomor anggota dan nama persis seperti di kartu anggota. Yang ditampilkan hanya periode dan status pembayaran — bukan data pribadi.</p>
-        <form class="dues-form" id="dues-check-form" novalidate>
+        <p class="dues-help">Untuk menjaga privasi, pengecekan riwayat pembayaran dilayani oleh Bendahara. Hubungi kontak bantuan di bawah; jangan kirim NIK atau foto KTP.</p>
+        <form class="dues-form" id="dues-check-form" hidden novalidate>
           <div class="dues-form-row">
             <div>
               <label for="c-nomor">Nomor anggota</label>
@@ -252,11 +252,11 @@
       <section class="dues-card is-dark" id="laporan" aria-labelledby="dues-report-title" style="grid-column:1/-1" hidden>
         <div class="dues-card-kicker">LAPORAN RESMI</div>
         <h2 id="dues-report-title" style="font:900 19px Arial,Helvetica,sans-serif;letter-spacing:.2px;margin:9px 0 4px;color:#fffdf7">Laporan iuran</h2>
-        <p class="dues-help" id="dues-report-meta">Diterbitkan oleh Bendahara DPD. Siapa pun boleh melihat ringkasan; rincian per anggota hanya terbuka setelah identitas kartu anggota cocok di server.</p>
+        <p class="dues-help" id="dues-report-meta">Diterbitkan oleh Bendahara DPD. Siapa pun boleh melihat ringkasan; rincian pembayaran dibatasi untuk pengurus berwenang.</p>
         <div class="dues-report-stats" id="dues-report-stats"></div>
         <p class="dues-help" id="dues-report-note" hidden></p>
 
-        <form class="dues-form" id="dues-report-form" novalidate style="margin-top:14px">
+        <form class="dues-form" id="dues-report-form" hidden novalidate style="margin-top:14px">
           <p class="dues-help"><b>Rincian untuk anggota terverifikasi.</b> Masukkan nomor anggota dan nama persis seperti di kartu anggota. Pemeriksaan dilakukan di server — rincian tidak sekadar disembunyikan di halaman.</p>
           <div class="dues-form-row">
             <div>
@@ -296,6 +296,6 @@
   <script src="supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="vendor/qrcode-generator.js"></script>
-  <script src="iuran.js"></script>
+  <script src="iuran.js?v=privacy-1"></script>
 <script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a555cfe5382c833d',t:'MTc5MzgxODMwNw=='};var l=window.parent.location,o;try{o=new URL(l.origin).origin}catch(e){try{o=new URL(new URL(l.href).origin).origin}catch(e){o=''}}var u='/cdn-cgi/challenge-platform/scripts/jsd/main.js?ray=a555cfe5382c833d',a=document.createElement('script');a.src=o?new URL(u,o).href:u;document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>

@@ -296,3 +296,7 @@ body.dues-page {
 @media (max-width: 720px) {
   .dues-report-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* Privacy: keep legacy lookup fields inert on the public page. Server RPC
+   authorization is enforced separately by migration 041, not by CSS. */
+#dues-check-form[hidden], #dues-report-form[hidden] { display: none !important; }
