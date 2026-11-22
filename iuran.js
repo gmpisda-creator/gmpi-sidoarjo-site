@@ -1079,8 +1079,7 @@
 
     // ---------- laporan resmi (ringkasan publik + rincian berlapis) ----------
     // Ringkasan: RPC dues_report_public_summary (agregat tanpa nama, aman untuk publik).
-    // Rincian: RPC dues_report_member_detail — server mencocokkan nomor anggota + nama
-    // dengan kartu anggota aktif/nonaktif; bila gagal, rincian tidak dibuka.
+    // Rincian: RPC dibatasi peran pengurus; formulir publik dinonaktifkan.
     function paintReportSummary(payload) {
       if (!reportCard) return;
       if (!payload || !payload.has_report || !payload.report) {
@@ -1095,7 +1094,7 @@
         : '';
       reportMeta.textContent = `Periode ${periodRangeLabels(report.period, report.months).join(' – ')}` +
         (published ? ` · diterbitkan ${published}` : '') +
-        ' · oleh Bendahara DPD. Ringkasan terbuka untuk publik; rincian per anggota hanya terbuka setelah identitas kartu anggota cocok di server.';
+        ' · oleh Bendahara DPD. Ringkasan terbuka untuk publik; rincian pembayaran dibatasi untuk pengurus berwenang.';
       reportStats.replaceChildren();
       const items = [
         ['Terkumpul (terverifikasi)', rupiah(stats.collected)],
