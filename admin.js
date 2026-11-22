@@ -174,6 +174,7 @@
     if (canEditSebaran()) tabs.push(['sebaran', 'Sebaran']);
     if (canSeeRsvp()) tabs.push(['rsvp', 'Kehadiran']);
     if (canSeeDues()) tabs.push(['dues', 'Iuran']);
+    if (canEditContent()) tabs.push(['activities', 'Lensa Kegiatan']);
     if (canManageNews()) tabs.push(['news', 'Berita']);
     if (canSeeMembers()) tabs.push(['announcements', 'Kirim pengumuman']);
     if (canSeeReports()) tabs.push(['reports', 'Aduan LBH']);
@@ -206,6 +207,7 @@
     if (key === 'sebaran' && canEditSebaran()) return renderSebaran();
     if (key === 'rsvp' && canSeeRsvp()) return renderRsvp();
     if (key === 'dues' && canSeeDues()) return renderDues();
+    if (key === 'activities' && canEditContent()) return window.GMPIActivities.admin({client, workspace, setMessage});
     if (key === 'news' && canManageNews()) return renderNews();
     if (key === 'announcements' && canSeeMembers()) return renderAnnouncements();
     if (key === 'reports' && canSeeReports()) return renderReports();
