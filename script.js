@@ -228,8 +228,12 @@
   joinForm.querySelectorAll('[name="domisili"]').forEach(r => r.addEventListener('change', sinkDomisili));
   sinkDomisili();
 
+  let registrationBusy = false;
+  joinStatus.setAttribute('role', 'status');
+  joinStatus.setAttribute('aria-live', 'polite');
   joinForm.addEventListener('submit', async event => {
     event.preventDefault();
+    if (registrationBusy) return;
     const joinCfg = window.GMPI_SUPABASE_CONFIG || {};
     const apiRoot = (joinCfg.url || '').replace(/\/$/, '');
     if (!apiRoot || !joinCfg.publishableKey) {
@@ -248,22 +252,28 @@
     async function unggah(file, label) {
       const ext = file.type === 'image/png' ? 'png' : 'jpg';
       const kunci = `reg/${uuid()}.${ext}`;
-      const res = await fetch(`${apiRoot}/storage/v1/object/member-documents/${kunci}`, {
+      const res = await window.GMPIRegistrationRequest.request(`${apiRoot}/storage/v1/object/member-documents/${kunci}`, {
         method: 'POST',
         headers: { apikey: joinCfg.publishableKey, Authorization: `Bearer ${joinCfg.publishableKey}`, 'Content-Type': file.type, 'x-upsert': 'false', 'cache-control': 'no-cache' },
         body: file
-      });
-      if (!res.ok) throw new Error(`${label} gagal diunggah. Periksa koneksi lalu coba lagi.`);
+      }, `Mengunggah ${label}`);
+      if (!res.ok) throw new Error(`${label} gagal diunggah (HTTP ${res.status}). ${res.status === 413 ? 'Ukuran file ditolak layanan.' : 'Hubungi pengurus bila masalah berulang.'} Isian belum dihapus.`);
       return kunci;
     }
     try {
       const ktpFile = document.querySelector('#join-ktp').files[0];
       const profilFile = document.querySelector('#join-profile').files[0];
+      registrationBusy = true;
       btn.disabled = true;
-      say('Mengunggah foto dokumen… mohon tunggu, jangan tutup halaman.');
-      const ktpKey = await unggah(ktpFile, 'Foto KTP');
-      const profilKey = await unggah(profilFile, 'Pas foto');
-      say('Mengirim pendaftaran…');
+      joinForm.setAttribute('aria-busy', 'true');
+      say('Memeriksa kedua file foto…');
+      const ktpBlob = await window.GMPIRegistrationRequest.readPhoto(ktpFile, 'Foto KTP');
+      const profilBlob = await window.GMPIRegistrationRequest.readPhoto(profilFile, 'Pas foto');
+      say('Tahap 1/3: Mengunggah foto KTP… jangan tutup halaman.');
+      const ktpKey = await unggah(ktpBlob, 'Foto KTP');
+      say('Tahap 2/3: Mengunggah pas foto…');
+      const profilKey = await unggah(profilBlob, 'Pas foto');
+      say('Tahap 3/3: Mengirim data pendaftaran…');
       const kirim = {
         p_full_name: val('name'), p_nik: val('nik'), p_birth_place: val('birthplace'), p_birth_date: val('birthdate'),
         p_gender: val('gender'), p_phone: val('contact'),
@@ -278,11 +288,11 @@
         p_jabatan: val('jabatan') || null,
         p_ktp_key: ktpKey, p_profile_key: profilKey
       };
-      const res = await fetch(`${apiRoot}/rest/v1/rpc/submit_member_registration`, {
+      const res = await window.GMPIRegistrationRequest.request(`${apiRoot}/rest/v1/rpc/submit_member_registration`, {
         method: 'POST',
         headers: { apikey: joinCfg.publishableKey, Authorization: `Bearer ${joinCfg.publishableKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(kirim)
-      });
+      }, 'Menyimpan pendaftaran', true);
       if (!res.ok) {
         let pesan = 'Pendaftaran gagal terkirim.';
         try { const j = await res.json(); if (j && j.message) pesan = j.message.replace(/^.*?: /, ''); } catch (e) { /* abaikan */ }
@@ -299,6 +309,8 @@
     } finally {
       btn.disabled = false;
       btn.innerHTML = btnText;
+      registrationBusy = false;
+      joinForm.removeAttribute('aria-busy');
     }
   });
 
