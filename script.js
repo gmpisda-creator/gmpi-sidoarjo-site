@@ -248,6 +248,9 @@
     if (!luar && !val('kelurahan')) { say('Pilih kelurahan/desa terlebih dulu.'); kelSel.focus(); return; }
     if (!luar && !val('kode_pos')) { say('Kode pos belum terisi — pilih kelurahan/desa dulu.'); return; }
     if (luar && val('kota_luar').length < 2) { say('Isi kota/kabupaten domisili Anda.'); document.querySelector('#join-kota-luar').focus(); return; }
+    const pledge = joinForm.querySelector('[name="pledge"]').checked;
+    const privacy = joinForm.querySelector('[name="privacy_acknowledged"]').checked;
+    if (!pledge || !privacy) { say('Centang persetujuan pernyataan dan privasi terlebih dahulu.'); return; }
     const uuid = () => (crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16); }));
     async function unggah(file, label) {
       const ext = file.type === 'image/png' ? 'png' : 'jpg';
@@ -266,6 +269,11 @@
       registrationBusy = true;
       btn.disabled = true;
       joinForm.setAttribute('aria-busy', 'true');
+      say('Memeriksa kesiapan pendaftaran aman…');
+      const ready = await window.GMPIRegistrationRequest.request(`${apiRoot}/rest/v1/rpc/registration_security_ready`, {
+        method: 'POST', headers: { apikey: joinCfg.publishableKey, Authorization: `Bearer ${joinCfg.publishableKey}`, 'Content-Type': 'application/json' }, body: '{}'
+      }, 'Memeriksa layanan');
+      if (!ready.ok || await ready.json() !== true) throw new Error('Pendaftaran sedang diperbarui. Hubungi pengurus; foto belum diunggah.');
       say('Memeriksa kedua file foto…');
       const ktpBlob = await window.GMPIRegistrationRequest.readPhoto(ktpFile, 'Foto KTP');
       const profilBlob = await window.GMPIRegistrationRequest.readPhoto(profilFile, 'Pas foto');
@@ -275,6 +283,7 @@
       const profilKey = await unggah(profilBlob, 'Pas foto');
       say('Tahap 3/3: Mengirim data pendaftaran…');
       const kirim = {
+        p_pledge_accepted: pledge, p_privacy_acknowledged: privacy,
         p_full_name: val('name'), p_nik: val('nik'), p_birth_place: val('birthplace'), p_birth_date: val('birthdate'),
         p_gender: val('gender'), p_phone: val('contact'),
         p_district: luar ? 'Di luar Kab. Sidoarjo' : val('district'),
@@ -288,7 +297,7 @@
         p_jabatan: val('jabatan') || null,
         p_ktp_key: ktpKey, p_profile_key: profilKey
       };
-      const res = await window.GMPIRegistrationRequest.request(`${apiRoot}/rest/v1/rpc/submit_member_registration`, {
+      const res = await window.GMPIRegistrationRequest.request(`${apiRoot}/rest/v1/rpc/submit_member_registration_consented`, {
         method: 'POST',
         headers: { apikey: joinCfg.publishableKey, Authorization: `Bearer ${joinCfg.publishableKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(kirim)
