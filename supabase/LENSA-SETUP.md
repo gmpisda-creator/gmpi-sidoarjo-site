@@ -12,7 +12,7 @@ Kode UI saja belum cukup. Jalankan `supabase/migrations/202610310038_lensa_kegia
 ## Batas dan privasi
 - **Bucket activity-media publik.** Teks draf/disembunyikan hanya dibaca editor, tetapi file media yang URL-nya diketahui tetap dapat dibuka, bahkan sesudah kegiatan disembunyikan. Jangan unggah KTP, dokumen internal, atau foto tanpa izin publikasi.
 - Mengganti/menghapus video dari entri tidak menghapus file lama. Berkas yang gagal terhubung setelah gangguan penyimpanan juga dapat tertinggal. Pembersihan file dilakukan pengelola melalui Storage setelah memeriksa referensinya.
-- Belum ada album multifoto, pagination admin, penghapusan permanen melalui UI, audit perubahan khusus, atau unggah video lebih dari 25 MB.
+- Album multifoto tersedia setelah migrasi `202610310039_activity_albums.sql` (1 sampul + 9 foto tambahan). Belum ada pagination admin, penghapusan permanen melalui UI, audit perubahan khusus, atau unggah video lebih dari 25 MB.
 - Dokumentasi lama (termasuk NTT) tetap statis dan tidak muncul di daftar edit. Jangan menambah NTT lagi kecuali memang kegiatan baru.
 - Tidak ada HTML dari pengguna yang dieksekusi; teks ditampilkan dengan textContent dan path media divalidasi.
 
@@ -23,3 +23,6 @@ Kode UI saja belum cukup. Jalankan `supabase/migrations/202610310038_lensa_kegia
 - Dialog menampilkan foto, teks, dan video; Escape/Tutup menutup dialog dan menghentikan video.
 - Pastikan draf tidak dapat dibaca lewat REST sebagai anon; file bucket publik memang tetap dapat diakses.
 - Periksa di HP serta saat koneksi terputus. Beranda harus mempertahankan dokumentasi lama.
+
+## Pembaruan album
+Lihat `deliverables/Panduan-Cadangan-dan-Album-GMPI.md` untuk aktivasi, batas media dan panduan backup. Migrasi album belum dijalankan dari chat. Foto tambahan lama tetap dipertahankan kecuali opsi kosongkan dipilih.

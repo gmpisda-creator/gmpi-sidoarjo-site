@@ -10,6 +10,7 @@
     const close=el('button','Tutup ×','activity-close'); close.type='button';
     dialog.setAttribute('aria-label',post.title);dialog.append(close,el('h2',post.title));
     const image=el('img');image.src=media(post.image_path);image.alt=post.title;dialog.append(image);
+    for(const [i,path] of (post.album_paths||[]).entries()){if(!media(path))continue;const figure=el('figure');const photo=el('img');photo.src=media(path);photo.alt=`${post.title} — foto ${i+2}`;photo.loading='lazy';figure.append(photo,el('figcaption',`Foto ${i+2}`));dialog.append(figure);}
     if(post.event_date)dialog.append(el('p',`Tanggal kegiatan: ${post.event_date}`));
     dialog.append(el('p',post.description,'activity-description'));
     if(media(post.video_path)){const video=el('video');video.src=media(post.video_path);video.controls=true;video.playsInline=true;video.preload='none';dialog.append(video);}
@@ -22,6 +23,8 @@
     const result=await client.from('activity_posts').select('*').order('created_at',{ascending:false}).limit(200);
     if(result.error){workspace.replaceChildren(el('h3','Lensa Kegiatan'),el('p','Modul belum dapat dimuat. Pastikan migrasi 202610310038_lensa_kegiatan.sql sudah dijalankan dan akun memiliki akses Pemilik/Editor Situs.'));return;}
     workspace.replaceChildren(el('h3','Lensa Kegiatan'),el('p','Kelola dokumentasi kegiatan. Teks draf tidak tampil di beranda. Foto/video yang diunggah memiliki URL publik, termasuk saat draf atau disembunyikan; jangan unggah KTP atau dokumen pribadi.'));
+    const albumCheck=await client.from('activity_posts').select('album_paths').limit(0);
+    const albumReady=!albumCheck.error;
     const add=el('button','Tambah kegiatan','admin-button');add.type='button';
     const slot=el('div');const list=el('div');workspace.append(add,slot,list);
     add.onclick=()=>edit({category:'aksi-sosial',status:'draft'});
@@ -35,6 +38,10 @@
       const category=field('category','Kategori','select');for(const [value,label]of Object.entries(categories))category.add(new Option(label,value));category.value=post.category;
       field('event_date','Tanggal kegiatan — boleh kosong jika belum diketahui','date',post.event_date);
       const image=field('image','Foto sampul — JPG/PNG/WebP, maksimal 5 MB','file');image.accept='image/jpeg,image/png,image/webp';image.required=!post.image_path;
+      const album=field('album','Foto tambahan — maksimal 9 foto, masing-masing 5 MB','file');album.accept='image/jpeg,image/png,image/webp';album.multiple=true;album.disabled=!albumReady;
+      if(!albumReady)form.append(el('p','Album belum aktif. Jalankan SQL 202610310039_activity_albums.sql. Kegiatan satu foto tetap dapat disimpan.'));
+      const removeAlbum=field('remove_album','Kosongkan foto tambahan lama (foto baru tetap ditambahkan)','checkbox');removeAlbum.disabled=!albumReady;
+      form.append(el('small',`${(post.album_paths||[]).length} foto tambahan tersimpan. Foto baru ditambahkan ke album lama kecuali kotak kosongkan dicentang.`));
       const video=field('video','Video opsional — MP4, maksimal 25 MB','file');video.accept='video/mp4';
       const removeVideo=field('remove_video','Hapus video dari kegiatan ini','checkbox');
       const status=field('status','Status','select');for(const [value,label]of Object.entries({draft:'Draf',published:'Tayang',hidden:'Disembunyikan'}))status.add(new Option(label,value));status.value=post.status;
@@ -45,12 +52,17 @@
       form.onsubmit=async e=>{
         e.preventDefault();if(busy)return;if(!title.value.trim())return title.focus();
         const pic=image.files[0],clip=video.files[0];
+        const photos=Array.from(album.files||[]);
+        const retained=removeAlbum.checked?[]:(post.album_paths||[]);
+        if(retained.length+photos.length>9)return setMessage('Maksimal 9 foto tambahan, di luar sampul.','error');
+        if(photos.some(f=>!['image/jpeg','image/png','image/webp'].includes(f.type)||!f.size||f.size>5242880))return setMessage('Setiap foto album harus JPG/PNG/WebP, maksimal 5 MB.','error');
         if(pic&&(!['image/jpeg','image/png','image/webp'].includes(pic.type)||!pic.size||pic.size>5242880))return setMessage('Foto harus JPG/PNG/WebP, maksimal 5 MB.','error');
         if(clip&&(clip.type!=='video/mp4'||!clip.size||clip.size>26214400))return setMessage('Video harus MP4, maksimal 25 MB.','error');
         busy=true;save.disabled=true;cancel.disabled=true;setMessage('Menyimpan dokumentasi…');
         async function upload(file,folder){const ext=file.type==='video/mp4'?'mp4':file.type==='image/jpeg'?'jpg':file.type.split('/')[1];const path=`${folder}/${crypto.randomUUID()}.${ext}`;const {error}=await client.storage.from('activity-media').upload(path,file,{upsert:false,contentType:file.type});if(error)throw Error('Unggah media gagal. Periksa koneksi, ukuran file, dan izin akses.');return path;}
         try{
           const payload={title:title.value.trim(),description:desc.value.trim(),category:category.value,event_date:fields.event_date.value||null,status:status.value,image_path:pic?await upload(pic,'photos'):post.image_path,video_path:clip?await upload(clip,'videos'):removeVideo.checked?null:post.video_path||null,updated_at:new Date().toISOString()};
+          if(albumReady){payload.album_paths=[...retained];for(const [i,file]of photos.entries()){setMessage(`Mengunggah foto album ${i+1}/${photos.length}…`);payload.album_paths.push(await upload(file,'photos'));}}
           const q=post.id?client.from('activity_posts').update(payload).eq('id',post.id):client.from('activity_posts').insert(payload);
           const {error}=await q.select('id').single();if(error)throw Error('Penyimpanan belum berhasil dikonfirmasi. Muat ulang daftar sebelum mencoba lagi agar tidak membuat duplikat. Media mungkin sudah terunggah.');
           setMessage(payload.status==='published'?'Kegiatan tersimpan dan berstatus Tayang.':'Kegiatan tersimpan; tidak ditampilkan di beranda.');await admin({client,workspace,setMessage});
@@ -64,7 +76,11 @@
   async function loadPublic(){
     const grid=document.querySelector('#lensa .masonry-grid');if(!grid||!root)return;
     try{
-      const r=await fetch(`${root}/rest/v1/activity_posts?select=id,title,description,category,event_date,image_path,video_path&status=eq.published&order=created_at.desc&limit=100`,{headers:{apikey:cfg.publishableKey,Authorization:`Bearer ${cfg.publishableKey}`}});
+      const fields='id,title,description,category,event_date,image_path,video_path';
+      const headers={apikey:cfg.publishableKey,Authorization:`Bearer ${cfg.publishableKey}`};
+      const url=`${root}/rest/v1/activity_posts?status=eq.published&order=created_at.desc&limit=100&select=`;
+      let r=await fetch(url+fields+',album_paths',{headers});
+      if(r.status===400){const error=await r.clone().json().catch(()=>({}));if(error.code==='42703'||error.code==='PGRST204')r=await fetch(url+fields,{headers});}
       if(!r.ok)return;const rows=await r.json();const fragment=document.createDocumentFragment();
       for(const p of rows){if(!media(p.image_path)||!categories[p.category])continue;
         const tile=el('article',null,'gallery-tile tile-mid');tile.dataset.category=p.category;
