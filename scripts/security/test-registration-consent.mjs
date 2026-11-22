@@ -1,0 +1,12 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+const sql=fs.readFileSync('supabase/migrations/202610310042_registration_consent.sql','utf8');
+const js=fs.readFileSync('script.js','utf8');
+assert(sql.includes('p_pledge_accepted is distinct from true or p_privacy_acknowledged is distinct from true'));
+assert(sql.includes('from PUBLIC, anon, authenticated'));
+assert(sql.includes('file_size_limit = 5242880'));
+assert(sql.includes("a.created_at > now() - interval '3 hours'"));
+assert(js.includes('/rpc/submit_member_registration_consented'));
+assert(js.indexOf('const ready =') < js.indexOf("await unggah(ktpBlob"));
+assert(js.includes('p_pledge_accepted: pledge, p_privacy_acknowledged: privacy'));
+console.log('PASS: static consent gateway, legacy revocation, readiness-before-upload, file size, SOS expiry checks.');

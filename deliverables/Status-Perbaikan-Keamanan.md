@@ -22,3 +22,16 @@ Pemeriksaan statis allowlist dan intake lulus; sintaks JavaScript dan git diff -
 - Angka batas global dapat menghambat pengguna sah saat spam; perlu pemantauan dan pembatasan per sumber di gateway terpercaya.
 
 Jangan menyebut seluruh audit selesai atau website sepenuhnya aman berdasarkan patch ini.
+
+## Pembaruan setelah screenshot image-103
+Operator mengonfirmasi SQL041 berhasil (Success. No rows returned); bukan pengujian end-to-end.
+
+## Paket 042 — menunggu aktivasi terkoordinasi
+- Gateway baru `submit_member_registration_consented` menerima dua persetujuan boolean wajib true; jalur lama dicabut dari PUBLIC/anon/authenticated. Fungsi lama dipanggil internal agar validasi live dan pilihan divisi terbaru tidak tertimpa.
+- Frontend mengirim persetujuan dan memeriksa kesiapan sebelum mengunggah. Jangan fallback ke fungsi lama.
+- Bucket privat member-documents dibatasi 5 MB per file, MIME JPEG/PNG; bukan pembatasan total kuota atau validasi isi gambar.
+- Pembatalan SOS dibatasi tiga jam, sejalan dengan pembaruan lokasi.
+- Paket frontend ditahan di PR sampai operator siap menjalankan SQL. Setelah SQL sukses, merge PR untuk mengaktifkan frontend baru. Selama jeda, halaman lama tidak bisa mengirim pendaftaran; muat ulang setelah deployment. Tidak menghapus data.
+- Parser SQL pglast, node --check, tes statis consent/intake, dan tes request pendaftaran lulus. Parser tidak menguji resolusi tabel, izin, atau tubuh PL/pgSQL pada database sungguhan.
+- Connector list_projects masih kosong. Versi Edge Function surat dan konfigurasi Auth live belum dapat diperiksa langsung.
+- OTP/login anggota serta upload terikat sesi belum dibuat. Rincian finansial tetap khusus admin; jangan membuka lagi hanya dengan nama/nomor. Persetujuan eksplisit bukan bukti identitas orang yang mengirim.
