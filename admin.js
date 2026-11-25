@@ -4339,6 +4339,14 @@
     }
     if (error) return showWorkspaceError('Data kartu belum bisa dibuka. Jalankan migrasi 202610200004_member_cards.sql di Supabase, lalu muat ulang halaman.');
     let cards = cardRows || [];
+    let organizationReady = false;
+    const organizationRows = await client.from('member_cards').select(`${cols},organization_level,dpc_district`)
+      .eq('is_sample', false).order('created_at', { ascending: false }).limit(500);
+    if (!organizationRows.error) {
+      organizationReady = true; cols += ',organization_level,dpc_district';
+      cards = organizationRows.data || [];
+    }
+
     let cardPhotoStorageReady = false;
     const cardPhotoColumn = await client.from('member_cards').select('photo_object_key').limit(1);
     if (!cardPhotoColumn.error) {
@@ -4417,6 +4425,29 @@
     districtIn.append(new Option('Pilih kecamatan', ''));
     DISTRICTS.forEach(d => districtIn.append(new Option(d, d)));
     const jabatanIn = input('card-jabatan', 'text', { required: true, maxLength: 60, value: 'Anggota' });
+    const organization = window.GMPICardOrganization;
+    const levelIn = make('select'); levelIn.id = 'card-organization-level';
+    levelIn.append(new Option('Belum ditetapkan (kartu lama)', ''), new Option('DPD', 'DPD'), new Option('DPC', 'DPC'));
+    const dpcIn = make('select'); dpcIn.id = 'card-dpc-district';
+    dpcIn.append(new Option('Pilih kecamatan DPC', ''));
+    organization.districts.forEach(d => dpcIn.append(new Option(d,d)));
+    levelIn.disabled = !organizationReady;
+    const dpcField = field('DPC Kecamatan (bukan domisili)', dpcIn);
+    function syncOrganization() {
+      dpcField.hidden = levelIn.value !== 'DPC';
+      dpcIn.required = levelIn.value === 'DPC'; dpcIn.disabled = !organizationReady || levelIn.value !== 'DPC';
+    }
+    function applyOrganizationTitle() {
+      syncOrganization();
+      if (levelIn.value && (levelIn.value !== 'DPC' || dpcIn.value)) {
+        const written = organization.title(jabatanIn.value, levelIn.value, dpcIn.value);
+        jabatanIn.value = written;
+        jabatanIn.dispatchEvent(new Event('input'));
+      }
+    }
+    levelIn.addEventListener('change', () => {if(levelIn.value !== 'DPC')dpcIn.value='';applyOrganizationTitle();});
+    dpcIn.addEventListener('change', applyOrganizationTitle);
+    syncOrganization();
     const list = make('select'); list.id = 'card-jabatan-pick'; list.className = 'card-jabatan-pick';
     list.setAttribute('aria-label', 'Pilih jabatan');
     // Read saved registration profile photos only for Owner/Registrar, never KTP images.
@@ -4454,7 +4485,7 @@
       if (match) list.value = match.value;
       else list.selectedIndex = 0;
     };
-    list.addEventListener('change', () => { if (!list.value) return; let v = list.value; if (/(DPC|Ranting)$/.test(v) && districtIn.value) v = `${v} ${districtIn.value}`; jabatanIn.value = v; jabatanIn.dispatchEvent(new Event('input')); });
+    list.addEventListener('change', () => { if (!list.value) return; let v = list.value; if (/(DPC|Ranting)$/.test(v) && districtIn.value) v = `${v} ${districtIn.value}`; jabatanIn.value = levelIn.value ? organization.title(v,levelIn.value,dpcIn.value) : v; jabatanIn.dispatchEvent(new Event('input')); });
     jabatanIn.addEventListener('input', syncPick);
     const issuedIn = input('card-issued', 'date', { required: true, value: today });
     const validIn = input('card-valid', 'date', { required: true, value: addYears(today, 2) });
@@ -4574,7 +4605,7 @@
     photoField.append(photoSourceStatus);
     const formFields = [statusLine];
     if (canSeeMembers()) formFields.push(memberPickField);
-    formFields.push(field('Nama lengkap', nameIn), rowA, field('Jabatan', list, structureResult.error ? 'Struktur tidak dapat dimuat; gunakan pilihan lain atau tulis jabatan di bawah.' : 'Daftar dimulai dengan jabatan dan divisi pada struktur website; pilihan sebelumnya tetap tersedia. Memilih akan mengganti tulisan di bawah.'), field('Jabatan tertulis di kartu', jabatanIn, 'Ini tulisan yang disimpan dan dicetak pada KTA. Boleh disesuaikan secara manual (maksimal 60 karakter).'), rowB,
+    formFields.push(field('Nama lengkap', nameIn), rowA, field('Tingkat organisasi', levelIn, organizationReady ? 'DPD atau DPC. Penempatan organisasi terpisah dari kecamatan domisili. Perubahan kartu aktif memerlukan persetujuan ulang; nomor dan kode QR tetap.' : 'Pilihan DPD/DPC belum aktif. Terapkan SQL 044 lalu muat ulang. Menu kartu lama tetap dapat digunakan.'), dpcField, field('Jabatan', list, structureResult.error ? 'Struktur tidak dapat dimuat; gunakan pilihan lain atau tulis jabatan di bawah.' : 'Daftar dimulai dengan jabatan dan divisi pada struktur website; pilihan sebelumnya tetap tersedia. Memilih akan mengganti tulisan di bawah.'), field('Jabatan tertulis di kartu', jabatanIn, 'Ini tulisan yang disimpan dan dicetak pada KTA. Boleh disesuaikan secara manual (maksimal 60 karakter).'), rowB,
       photoField, photoTools, backTools, btnRow);
     formEl.append(...formFields);
 
@@ -4718,6 +4749,7 @@
       nameIn.value = reg.full_name || '';
       districtIn.value = reg.district || '';
       jabatanIn.value = reg.jabatan || 'Anggota';
+      applyOrganizationTitle();
       syncPick();
       refillJabatanPick();
       applyingRegistration = false;
@@ -4782,6 +4814,7 @@
     function resetForm() {
       editing = null;
       formEl.reset();
+      levelIn.value = ''; dpcIn.value = ''; syncOrganization();
       signerNameIn.value = savedSigner.name || signerNameIn.defaultValue || 'HASMIN MARJAN';
       signerTitleIn.value = savedSigner.title || 'KETUA DPD GMPI';
       try { const s2 = JSON.parse(localStorage.getItem(SIGNER_KEY) || '{}'); if (s2.name) signerNameIn.value = s2.name; if (s2.title) signerTitleIn.value = s2.title; } catch (e) { /* abaikan */ }
@@ -4808,6 +4841,7 @@
       numberIn.value = card.member_number;
       districtIn.value = card.district;
       jabatanIn.value = card.jabatan || 'Anggota';
+      levelIn.value = card.organization_level || ''; dpcIn.value = card.dpc_district || ''; syncOrganization();
       // Refresh options against the opened card so its current unique role remains selectable.
       refillJabatanPick(); syncPick();
       issuedIn.value = card.issued_at;
@@ -4950,6 +4984,12 @@
         issued_at: issuedIn.value,
         valid_until: validIn.value
       };
+      if (organizationReady) {
+        payload.organization_level = levelIn.value || null;
+        payload.dpc_district = levelIn.value === 'DPC' ? dpcIn.value : null;
+        if (levelIn.value === 'DPC' && !organization.districts.includes(dpcIn.value)) {setMessage('Pilih kecamatan DPC.', 'error');return;}
+      }
+      if (payload.jabatan.length > 60) {setMessage('Jabatan tertulis maksimal 60 karakter. Singkat jabatan sebelum menyimpan.', 'error');return;}
       if (!editing && !selectedRegistrationId && !registrationSelectionTouched && canSeeMembers()) {
         const matches = regRows.filter(r => r.status !== 'ditolak' && normalizeName(r.full_name) === normalizeName(payload.full_name) && r.district === payload.district);
         if (matches.length === 1) selectedRegistrationId = matches[0].id;
@@ -4974,7 +5014,7 @@
       const cardDataChanged = Boolean(editing && (
         payload.full_name !== editing.full_name || payload.district !== editing.district ||
         payload.jabatan !== editing.jabatan || payload.issued_at !== editing.issued_at ||
-        payload.valid_until !== editing.valid_until || Boolean(payload.member_number)
+        payload.valid_until !== editing.valid_until || Boolean(payload.member_number) || (organizationReady && organization.changed(editing,payload))
       ));
       if (editing && approvalReady && editing.status !== 'menunggu') {
         if (!cardDataChanged && !photoReplacementPending && editing.status !== 'ditolak') { setMessage('Tidak ada perubahan data kartu.'); return; }
@@ -4990,7 +5030,7 @@
       }
       let result;
       if (editing) {
-        const unchangedRejected = editing.status === 'ditolak' && payload.full_name === editing.full_name && payload.district === editing.district && payload.jabatan === editing.jabatan && payload.issued_at === editing.issued_at && payload.valid_until === editing.valid_until && !payload.member_number;
+        const unchangedRejected = (!organizationReady || !organization.changed(editing,payload)) && editing.status === 'ditolak' && payload.full_name === editing.full_name && payload.district === editing.district && payload.jabatan === editing.jabatan && payload.issued_at === editing.issued_at && payload.valid_until === editing.valid_until && !payload.member_number;
         result = await client.from('member_cards').update(unchangedRejected ? { status: 'menunggu' } : payload).eq('id', editing.id)
           .select(cols).single();
       } else {
