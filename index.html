@@ -231,8 +231,10 @@
           </div>
           <div id="domisili-luar" hidden><label for="join-kota-luar">Kota / kabupaten domisili</label><input id="join-kota-luar" name="kota_luar" maxlength="80" placeholder="cth: Kab. Malang / Kota Surabaya"></div>
           <label for="join-address">Nama jalan / gang / blok / nomor rumah <span class="label-detail">(nama desa &amp; kecamatan tak perlu ditulis lagi)</span></label><textarea id="join-address" name="address" rows="2" autocomplete="street-address" placeholder="cth: Perum Graha Bougenville Kav. 22–23" required></textarea>
-          <label for="join-division">Bidang pergerakan yang diminati</label><select id="join-division" name="division" required>
-            <option value="">Pilih bidang</option>
+          <label for="join-division">Bidang pergerakan yang diminati <span class="label-detail">(opsional)</span></label>
+          <p id="join-division-help" class="form-footnote">Boleh dikosongkan jika belum memilih bidang. DPC bukan bidang pergerakan; tuliskan jabatan seperti Ketua DPC Porong pada kolom Jabatan pengurus. Penempatan DPC ditetapkan pengurus melalui menu Kartu anggota.</p>
+          <select id="join-division" name="division" aria-describedby="join-division-help">
+            <option value="">Belum memilih bidang / lewati</option>
             <optgroup label="Badan dan satuan pergerakan">
               <option>Lembaga Bantuan Hukum / Advokasi Hukum Rakyat</option>
               <option>Squad Militansi — Pengamanan &amp; Solidaritas</option>
