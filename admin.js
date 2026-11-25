@@ -171,6 +171,7 @@
     if (canSeeSiaga()) tabs.push(['siaga', 'Siaga']);
     if (canEditContent()) tabs.push(['sos', 'Darurat']);
     if (canEditContent()) tabs.push(['struktur', 'Struktur']);
+    if (canEditContent()) tabs.push(['dpc', 'DPC Kecamatan']);
     if (canEditSebaran()) tabs.push(['sebaran', 'Sebaran']);
     if (canSeeRsvp()) tabs.push(['rsvp', 'Kehadiran']);
     if (canSeeDues()) tabs.push(['dues', 'Iuran']);
@@ -204,6 +205,7 @@
     if (key === 'siaga' && canSeeSiaga()) return renderSiaga();
     if (key === 'sos' && canEditContent()) return renderSos();
     if (key === 'struktur' && canEditContent()) return renderStruktur();
+    if (key === 'dpc' && canEditContent()) return window.GMPIDpc.admin({client, workspace});
     if (key === 'sebaran' && canEditSebaran()) return renderSebaran();
     if (key === 'rsvp' && canSeeRsvp()) return renderRsvp();
     if (key === 'dues' && canSeeDues()) return renderDues();
